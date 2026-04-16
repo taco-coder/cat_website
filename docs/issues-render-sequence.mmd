@@ -1,0 +1,42 @@
+sequenceDiagram
+  autonumber
+
+  box rgba(230, 240, 255, 0.35) Server (same Node process in dev)
+    participant MW as middleware.ts
+    participant RSC as Next.js RSC runtime
+    participant Page as IssuesPage (Server Component)
+    participant API as GET /api/issues (route.ts)
+    participant Store as issues-store (globalThis)
+  end
+
+  participant BR as Browser
+  participant Stats as IssueStatsClient (use client)
+  participant Filters as IssueFilters (use client)
+
+  rect rgb(245, 245, 245)
+    Note over BR, Store: Phase A — First navigation: HTML produced on the server
+    BR->>MW: GET /issues?status=…&sort=…
+    alt No demo_session cookie
+      MW-->>BR: 302 redirect to /
+    else Cookie OK
+      MW->>RSC: continue to route
+      RSC->>Page: render IssuesPage (async)
+      Page->>Page: await searchParams
+      Page->>API: fetch(getBaseUrl + /api/issues?…), cache no-store
+      API->>Store: listIssues() → copy/filter/sort
+      Store-->>API: Issue[]
+      API-->>Page: 200 { issues }
+      Page->>Page: Build tree: IssueList → IssueCard (server) + client boundaries
+      RSC-->>BR: HTML + RSC payload
+    end
+  end
+
+  rect rgb(235, 250, 235)
+    Note over BR, API: Phase B — After paint: JS loads, hydration + client fetches
+    BR->>Stats: hydrate IssueStatsClient
+    Stats->>API: fetch(/api/issues) from browser (React Query)
+    API->>Store: listIssues() again
+    Store-->>API: Issue[]
+    API-->>Stats: 200 { issues } → count
+    BR->>Filters: hydrate IssueFilters (router + URL)
+  end
