@@ -51,15 +51,25 @@ const seedPosts: CatPost[] = [
   },
 ];
 
-const posts = [...seedPosts].sort(
-  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-);
+const globalForPostStore = globalThis as typeof globalThis & {
+  __postStore?: CatPost[];
+};
+
+function getStore() {
+  if (!globalForPostStore.__postStore) {
+    globalForPostStore.__postStore = [...seedPosts].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+  return globalForPostStore.__postStore;
+}
 
 export function listPosts() {
-  return [...posts];
+  return [...getStore()];
 }
 
 export function listPostsPage(cursor: string | null, limit = 3) {
+  const posts = getStore();
   const startIndex = cursor
     ? posts.findIndex((post) => post.id === cursor) + 1
     : 0;
@@ -67,4 +77,40 @@ export function listPostsPage(cursor: string | null, limit = 3) {
   const items = posts.slice(safeStartIndex, safeStartIndex + limit);
   const nextCursor = items.length === limit ? items.at(-1)?.id ?? null : null;
   return { items, nextCursor };
+}
+
+export function createPost(data: Pick<CatPost, "imageUrl" | "caption">) {
+  const post: CatPost = {
+    id: crypto.randomUUID(),
+    imageUrl: data.imageUrl,
+    caption: data.caption,
+    createdAt: new Date().toISOString(),
+    heartCount: 0,
+  };
+  getStore().unshift(post);
+  return post;
+}
+
+export function updatePost(
+  id: string,
+  data: Partial<Pick<CatPost, "imageUrl" | "caption">>,
+) {
+  const store = getStore();
+  const idx = store.findIndex((post) => post.id === id);
+  if (idx === -1) return undefined;
+  const prev = store[idx];
+  const next: CatPost = {
+    ...prev,
+    ...data,
+  };
+  store[idx] = next;
+  return next;
+}
+
+export function deletePost(id: string) {
+  const store = getStore();
+  const idx = store.findIndex((post) => post.id === id);
+  if (idx === -1) return false;
+  store.splice(idx, 1);
+  return true;
 }
