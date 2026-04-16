@@ -68,6 +68,10 @@ export function listPosts() {
   return [...getStore()];
 }
 
+export function getPost(id: string) {
+  return getStore().find((post) => post.id === id);
+}
+
 export function listPostsPage(cursor: string | null, limit = 3) {
   const posts = getStore();
   const startIndex = cursor
@@ -113,4 +117,12 @@ export function deletePost(id: string) {
   if (idx === -1) return false;
   store.splice(idx, 1);
   return true;
+}
+
+export function incrementHeartCount(postId: string) {
+  const store = getStore();
+  const post = store.find((item) => item.id === postId);
+  if (!post) return undefined;
+  post.heartCount += 1;
+  return post;
 }
