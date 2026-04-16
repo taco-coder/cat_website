@@ -55,8 +55,13 @@ logs/
 # local editor/OS settings
 .idea/
 .vscode/
+.cursor/
 *.swp
 *.swo
 
 # typescript
 *.tsbuildinfo
+
+# bmad generated artifacts
+_bmad-output/
+_bmad/
